@@ -64,14 +64,18 @@ class Blockchain {
   _addBlock(block) {
     let self = this;
     return new Promise(async (resolve, reject) => {
+      let errorLog = await self.validateChain();
+      if (errorLog.length > 0) {
+        reject("Blockchain is tampered");
+      }
       let currentChainHeight = self.height;
       if (currentChainHeight > -1) {
         //Not the genesis block
         block.previousBlockHash = self.chain[self.chain.length - 1].hash;
       }
       block.height = currentChainHeight + 1;
-      block.hash = SHA256(JSON.stringify(block)).toString();
       block.time = new Date().getTime().toString().slice(0, -3);
+      block.hash = SHA256(JSON.stringify(block)).toString();
       self.chain.push(block);
       self.height = currentChainHeight + 1;
       resolve(block);
@@ -128,7 +132,6 @@ class Blockchain {
       if (!validMessage) {
         reject("Not a valid message!");
       }
-      //TODO add wallet address in side block (BlockClass.Block({"star":star,"owner":address});)
       self
         ._addBlock(new BlockClass.Block({ star: star, owner: address }))
         .then((addedBlock) => resolve(addedBlock));
@@ -200,7 +203,20 @@ class Blockchain {
   validateChain() {
     let self = this;
     let errorLog = [];
-    return new Promise(async (resolve, reject) => {});
+    return new Promise(async (resolve, reject) => {
+      for (let [index, block] of self.chain.entries()) {
+        let isValidBlock = await block.validate();
+        let isGenesisBlock = index === 0; //No need to check height and previousBlockHash for genesis block here, as block.validate will take care of it
+        let previousBlockHash = block.previousBlockHash;
+        if (
+          !isValidBlock ||
+          (!isGenesisBlock && previousBlockHash !== self.chain[index - 1].hash)
+        ) {
+          errorLog.push({ errorBlockHash: block.hash });
+        }
+      }
+      resolve(errorLog);
+    });
   }
 }
 

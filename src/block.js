@@ -40,9 +40,11 @@ class Block {
       // Save in auxiliary variable the current block hash
       let currentBlockHash = self.hash;
       // Recalculate the hash of the Block
-      let calculatedBlockHash = SHA256(JSON.stringify(self)).toString();
+      let copyBlock = { ...self };
+      copyBlock.hash = null; //When hash is calculated for a block in _addBlock, at that time hash is null
+      let calculatedBlockHash = SHA256(JSON.stringify(copyBlock)).toString();
       // Comparing if the hashes changed
-      let valid = currentBlockHash == calculatedBlockHash;
+      let valid = currentBlockHash === calculatedBlockHash;
       // Returning the Block is not valid
       resolve(valid);
       // Returning the Block is valid
@@ -73,6 +75,8 @@ class Block {
       resolve(bodyObject);
     });
   }
+  R;
+  Z;
 }
 
 module.exports.Block = Block; // Exposing the Block class as a module
